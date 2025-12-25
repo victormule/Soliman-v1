@@ -1,0 +1,208 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'OrbitControls';
+import { Sky } from 'Sky';
+import { GLTFLoader } from 'GLTFLoader';
+
+export const DEBUG_CAMERA = false;
+
+// initialisation de la scène, du renderer, de la caméra, du sol, du ciel, des plantes…
+export function initCore() {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf0f0f0);
+  scene.fog = new THREE.Fog(0x5f3d3f, 25, 90);
+
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    200
+  );
+  const startPosition  = new THREE.Vector3(-5, 5, 70);
+  const targetPosition = new THREE.Vector3(0, 1.5, 18);
+  camera.position.copy(startPosition);
+  camera.lookAt(0, 1.5, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+  let controls = null;
+  if (DEBUG_CAMERA) {
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+  }
+
+  // ==== LUMIÈRES ====
+  const light = new THREE.DirectionalLight(0xffffff, 3.5);
+  light.position.set(45, 10, 30);
+  light.castShadow = true;
+  light.shadow.mapSize.set(2048, 2048);
+  light.shadow.camera.left   = -50;
+  light.shadow.camera.right  =  50;
+  light.shadow.camera.top    =  50;
+  light.shadow.camera.bottom = -50;
+  light.shadow.camera.near   =   1;
+  light.shadow.camera.far    = 100;
+  scene.add(light);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambient);
+
+  // ==== SOL RÉALISTE (sable ondulé) ====
+  const textureLoader = new THREE.TextureLoader();
+
+  const groundTexture = textureLoader.load('images/ground.jpg');
+  groundTexture.wrapS = THREE.RepeatWrapping;
+  groundTexture.wrapT = THREE.RepeatWrapping;
+  groundTexture.repeat.set(20, 20);
+  groundTexture.offset.set(0.25, 0.1);
+  groundTexture.anisotropy = 8;
+
+  const groundMaterial = new THREE.MeshStandardMaterial({
+    map: groundTexture,
+    roughness: 1.0,
+    metalness: 0.0,
+    side: THREE.DoubleSide
+  });
+
+  const groundGeometry = new THREE.PlaneGeometry(400, 400, 200, 200);
+  const pos = groundGeometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+
+    const wave1 = Math.sin(x * 10.05) * 0.4;
+    const wave2 = Math.cos(y * 10.04) * 0.3;
+    const noise = Math.sin((x + y) * 0.1) * 0.15;
+
+    const height = (wave1 + wave2 + noise) * 0.35;
+    pos.setZ(i, height);
+  }
+  pos.needsUpdate = true;
+  groundGeometry.computeVertexNormals();
+
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.75;
+  ground.receiveShadow = true;
+  ground.renderOrder = -1;
+  scene.add(ground);
+
+  // ==== CIEL ====
+  const sky = new Sky();
+  sky.scale.setScalar(450000);
+  scene.add(sky);
+  const skyUniforms = sky.material.uniforms;
+  skyUniforms['turbidity'].value = 8;
+  skyUniforms['rayleigh'].value = 2.5;
+  skyUniforms['mieCoefficient'].value = 0.005;
+  skyUniforms['mieDirectionalG'].value = 0.9;
+
+  const sunPosition = new THREE.Vector3();
+  const inclination = 0.5;
+  const azimuth     = 0.5;
+  const theta = Math.PI * (inclination - 0.5);
+  const phi   = 2 * Math.PI * (azimuth - 0.5);
+  sunPosition.x = Math.cos(phi);
+  sunPosition.y = Math.sin(theta);
+  sunPosition.z = Math.sin(phi);
+  skyUniforms['sunPosition'].value.copy(sunPosition);
+
+  // ==== PLANTES ANIMÉES + SCÈNE PRINCIPALE ====
+  const animatedPlants = [];
+  const animNames = new Set([
+    'palm','palm1','palm2','palm3','palm4','palm5',
+    'plante','plante1','plante2',
+    'tree','tree1','tree2','tree3','tree4','tree5'
+  ]);
+
+  const loader = new GLTFLoader();
+  loader.load('model/scene.glb', (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(1, 1, 1);
+
+    model.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      const name = (child.name || '').toLowerCase();
+      const parentName =
+        child.parent && child.parent.name
+          ? child.parent.name.toLowerCase()
+          : '';
+
+      if (animNames.has(name) || animNames.has(parentName)) {
+        animatedPlants.push({
+          mesh: child,
+          baseRotation: child.rotation.clone(),
+          offset: Math.random() * Math.PI * 2
+        });
+      }
+    });
+
+    scene.add(model);
+  });
+
+  // paramètres caméra animée
+  const lookTarget = new THREE.Vector3(0, 1.5, 0);
+  const baseCamPos = new THREE.Vector3().copy(startPosition);
+  const shakeAmp = 0.02;
+  const speed = 0.008;
+
+  return {
+    scene,
+    camera,
+    renderer,
+    controls,
+    animatedPlants,
+    startPosition,
+    targetPosition,
+    lookTarget,
+    baseCamPos,
+    shakeAmp,
+    speed
+  };
+}
+
+// met à jour la caméra + les plantes qui bougent
+export function updateCameraAndPlants(time, deltaMs, core, appState) {
+  const t = (time || 0) * 0.001;
+
+  if (!DEBUG_CAMERA && appState.isStarted) {
+    if (appState.progress < 1) {
+      appState.progress += core.speed;
+      if (appState.progress > 1) appState.progress = 1;
+    }
+
+    core.baseCamPos.lerpVectors(core.startPosition, core.targetPosition, appState.progress);
+
+    const shakeX = (Math.sin(t * 1.0) + Math.sin(t * 3.0 + 1.5)) * 0.5 * core.shakeAmp;
+    const shakeY = Math.sin(t * 2.0 + 0.3) * core.shakeAmp;
+    const shakeZ = Math.sin(t * 1.5 + 0.7) * core.shakeAmp;
+
+    core.camera.position.set(
+      core.baseCamPos.x + shakeX,
+      core.baseCamPos.y + shakeY,
+      core.baseCamPos.z + shakeZ
+    );
+
+    const desiredLook = new THREE.Vector3(
+      0 + appState.mouseX * 0.5,
+      1.5 + appState.mouseY * 0.3,
+      0
+    );
+    core.lookTarget.lerp(desiredLook, 0.08);
+    core.camera.lookAt(core.lookTarget);
+  }
+
+  if (appState.isStarted) {
+    core.animatedPlants.forEach((item) => {
+      const { mesh, baseRotation, offset } = item;
+      const sway = Math.sin(t * 0.5 + offset) * 0.04;
+      mesh.rotation.x = baseRotation.x + sway;
+    });
+  }
+}
