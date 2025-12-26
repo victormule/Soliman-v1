@@ -8,9 +8,18 @@ export function initUI(appState, canvas) {
   appState.overlay = overlay;
   appState.uiPanel = uiPanel;
 
-  // --- helpers plein écran + orientation ---
+  // ------------ FULLSCREEN + ORIENTATION ------------
+
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function isFullscreen() {
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.msFullscreenElement
+    );
   }
 
   async function enterFullscreenAndLock() {
@@ -19,39 +28,117 @@ export function initUI(appState, canvas) {
     try {
       if (elem.requestFullscreen) {
         await elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {       // Safari
+      } else if (elem.webkitRequestFullscreen) {
         await elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) {           // vieux Edge
+      } else if (elem.msRequestFullscreen) {
         await elem.msRequestFullscreen();
       }
     } catch (e) {
       console.warn('Fullscreen error:', e);
     }
 
+    // tentative de lock paysage (souvent refusé sur iOS, ce n’est pas grave)
     try {
       if (screen.orientation && screen.orientation.lock) {
         await screen.orientation.lock('landscape');
       }
     } catch (e) {
-      // Sur iOS Safari, ça échoue souvent, ce n'est pas grave.
       console.warn('Orientation lock failed:', e);
     }
   }
 
-  // === START ===
+  async function exitFullscreen() {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        await document.msExitFullscreen();
+      }
+    } catch (e) {
+      console.warn('Exit fullscreen error:', e);
+    }
+  }
+
+  async function toggleFullscreen() {
+    if (isFullscreen()) {
+      await exitFullscreen();
+    } else {
+      await enterFullscreenAndLock();
+    }
+  }
+
+  // ---------- BOUTON TOGGLE FULLSCREEN (en haut à droite) ----------
+  let fullscreenBtn = null;
+
+  function createFullscreenButton() {
+    if (fullscreenBtn) return;
+
+    fullscreenBtn = document.createElement('button');
+    fullscreenBtn.id = 'fullscreenToggle';
+    fullscreenBtn.type = 'button';
+    fullscreenBtn.textContent = '⤢'; // simple icône
+    fullscreenBtn.style.display = 'none'; // on l’affiche après START
+    document.body.appendChild(fullscreenBtn);
+
+    fullscreenBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFullscreen();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      updateFullscreenButton();
+    });
+
+    updateFullscreenButton();
+  }
+
+  function updateFullscreenButton() {
+    if (!fullscreenBtn) return;
+    const fs = !!isFullscreen();
+    fullscreenBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
+  }
+
+  createFullscreenButton();
+
+  // ---------- GESTION ORIENTATION (message "tourner le téléphone") ----------
+  function handleOrientation() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    document.body.classList.toggle('force-landscape-warning', isPortrait && isMobile());
+  }
+
+  window.addEventListener('orientationchange', handleOrientation);
+  window.addEventListener('resize', handleOrientation);
+  handleOrientation();
+
+  // ==================== START ====================
   if (startBtn && overlay && canvas) {
     startBtn.addEventListener('click', () => {
       appState.isStarted = true;
       appState.progress = 0;
+
       canvas.classList.add('started');
       overlay.style.opacity = '0';
       overlay.style.pointerEvents = 'none';
 
-      // Sur mobile : on tente plein écran + orientation paysage
-      if (isMobile()) {
+      // 👉 On montre le panel directement (même en plein écran)
+      if (uiPanel) {
+        uiPanel.style.opacity = '1';
+        uiPanel.style.pointerEvents = 'auto';
+      }
+
+      // plein écran auto sur mobile au premier clic
+      if (isMobile() && !isFullscreen()) {
         enterFullscreenAndLock();
       }
 
+      // on affiche le bouton de toggle plein écran
+      if (fullscreenBtn) {
+        fullscreenBtn.style.display = 'block';
+      }
+
+      // on retire le DOM après le fade
       setTimeout(() => {
         if (overlay && overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
@@ -60,12 +147,13 @@ export function initUI(appState, canvas) {
     });
   }
 
-  // === MOUSE POSITION ===
+  // ==================== MOUSE POSITION ====================
   window.addEventListener('mousemove', (e) => {
     appState.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     appState.mouseY = (e.clientY / window.innerHeight) * 2 - 1;
   });
 
+  // ==================== BOUTONS PANEL ====================
   const btnElHalaby = document.getElementById('btn-elhalaby');
   const btnAssassin = document.getElementById('btn-assassin');
   const btnMartyr   = document.getElementById('btn-martyr');
@@ -93,20 +181,13 @@ export function initUI(appState, canvas) {
     if (!btn) return;
 
     btn.addEventListener('mouseenter', () => {
-      // SI un bouton est déjà actif, on ne touche plus aux personnages.
-      // On laisse juste le :hover CSS gérer l'opacité/couleur.
+      // si un bouton est déjà actif, on ne fait plus de preview
       if (activeName) return;
-
-      // sinon : preview au survol
       applySelection(name);
     });
 
     btn.addEventListener('mouseleave', () => {
-      // SI un bouton est déjà actif, on ne change rien à la scène :
-      // le personnage verrouillé reste visible.
       if (activeName) return;
-
-      // sinon : on nettoie tout quand on quitte le bouton
       hideAllCharacters();
       stopBonesBird();
     });
@@ -130,6 +211,7 @@ export function initUI(appState, canvas) {
       if (activeButton) {
         activeButton.classList.remove('active');
       }
+
       activeButton = btn;
       activeName   = name;
       btn.classList.add('active');
@@ -157,15 +239,5 @@ export function initUI(appState, canvas) {
   // "Reste humain" → tas d’os + oiseau
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
-
-  // === Gestion "forcer paysage" visuelle ===
-  function handleOrientation() {
-    const isPortrait = window.innerHeight > window.innerWidth;
-    document.body.classList.toggle('force-landscape-warning', isPortrait);
-  }
-
-  window.addEventListener('orientationchange', handleOrientation);
-  window.addEventListener('resize', handleOrientation);
-  handleOrientation();
 }
 
