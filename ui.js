@@ -25,7 +25,6 @@ export function initUI(appState, canvas) {
   }
 
   async function enterFullscreenAndLock() {
-    // ⚠️ TRES IMPORTANT :
     // on met TOUTE LA PAGE en plein écran (documentElement),
     // pour que le panel UI reste visible.
     const elem = document.documentElement;
@@ -84,7 +83,7 @@ export function initUI(appState, canvas) {
     if (!fullscreenBtn) return;
     const fs = isFullscreen();
     fullscreenBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
-    fullscreenBtn.textContent = fs ? '⤡' : '⤢'; // icône différente selon l'état
+    fullscreenBtn.classList.toggle('fs-active', fs);
   }
 
   function createFullscreenButton() {
@@ -93,8 +92,15 @@ export function initUI(appState, canvas) {
     fullscreenBtn = document.createElement('button');
     fullscreenBtn.id = 'fullscreenToggle';
     fullscreenBtn.type = 'button';
-    fullscreenBtn.textContent = '⤢';
-    // display: none par défaut, rendu visible après START
+
+    // 4 corners indépendants pour matcher le CSS .fs-corner.fs-tl / .fs-tr / .fs-bl / .fs-br
+    const positions = ['tl', 'tr', 'bl', 'br'];
+    positions.forEach((pos) => {
+      const span = document.createElement('span');
+      span.classList.add('fs-corner', `fs-${pos}`);
+      fullscreenBtn.appendChild(span);
+    });
+
     document.body.appendChild(fullscreenBtn);
 
     fullscreenBtn.addEventListener('click', (e) => {
@@ -132,28 +138,24 @@ export function initUI(appState, canvas) {
       appState.isStarted = true;
       appState.progress = 0;
 
-      // enlève le blur au début
       canvas.classList.add('started');
-
-      // fade de l'overlay
       overlay.style.opacity = '0';
       overlay.style.pointerEvents = 'none';
 
-      // 👉 on laisse main.js gérer l'apparition du panel
-      //    quand progress >= 1 (zoom terminé)
+      // ⚠️ on laisse main.js gérer l'apparition du panel
+      // quand appState.progress >= 1 (zoom terminé)
 
       // plein écran auto sur mobile au premier clic
       if (isMobile() && !isFullscreen()) {
         await enterFullscreenAndLock();
       }
 
-      // bouton pour pouvoir re-passer en plein écran ensuite
+      // on montre le bouton fullscreen
       if (fullscreenBtn) {
-        fullscreenBtn.style.display = 'block';
+        fullscreenBtn.style.display = 'flex'; // correspond au display du CSS
         updateFullscreenButton();
       }
 
-      // suppression DOM de l'overlay après l'anim
       setTimeout(() => {
         if (overlay && overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
@@ -202,13 +204,17 @@ export function initUI(appState, canvas) {
     if (!btn) return;
 
     btn.addEventListener('mouseenter', () => {
-      // si un bouton est déjà actif, pas de preview
+      // SI un bouton est déjà actif, on ne touche plus aux personnages.
       if (activeName) return;
+
+      // sinon : preview au survol
       applySelection(name);
     });
 
     btn.addEventListener('mouseleave', () => {
+      // SI un bouton est déjà actif, on ne change rien à la scène.
       if (activeName) return;
+
       hideAllCharacters();
       stopBonesBird();
     });
@@ -261,4 +267,3 @@ export function initUI(appState, canvas) {
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
 }
-
