@@ -1,4 +1,7 @@
-/* BASE */
+/* =========================
+   BASE
+   ========================= */
+
 html,
 body {
   margin: 0;
@@ -9,11 +12,14 @@ body {
   overflow: hidden;
 }
 
-/* CANVAS */
+/* =========================
+   CANVAS (renderer Three.js)
+   ========================= */
+
 canvas {
   display: block;
   width: 100vw;
-  height: 100vh;
+  height: 100vh; /* valeur par défaut */
   filter: blur(10px);
   transition: filter 0.8s ease;
 }
@@ -22,7 +28,18 @@ canvas.started {
   filter: blur(0);
 }
 
-/* OVERLAY + BOUTON START */
+/* Sur navigateurs modernes (Android/Chrome, iOS récents),
+   100dvh = hauteur visible, sans la barre d'adresse */
+@supports (height: 100dvh) {
+  canvas {
+    height: 100dvh;
+  }
+}
+
+/* =========================
+   OVERLAY + BOUTON START
+   ========================= */
+
 #overlay {
   position: fixed;
   inset: 0;
@@ -50,18 +67,21 @@ canvas.started {
   transform: translateY(-2px);
 }
 
-/* PANEL UI GAUCHE */
+/* =========================
+   PANEL UI GAUCHE
+   ========================= */
+
 #uiPanel {
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: 100vh; /* sera écrasé par 100dvh ci-dessous si dispo */
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* occupe toute la hauteur */
+  justify-content: space-between;
   padding: 3vh 1.8vw;
   box-sizing: border-box;
-  gap: 2vh; /* ou 1vh, selon ton goût */
+  gap: 2vh;
   z-index: 10;
   opacity: 0;
   pointer-events: none;
@@ -69,14 +89,25 @@ canvas.started {
   font-family: system-ui, sans-serif;
 }
 
-/* STYLE DES BOUTONS */
+/* même logique que pour le canvas : tout doit tenir dans la fenêtre */
+@supports (height: 100dvh) {
+  #uiPanel {
+    height: 100dvh;
+  }
+}
+
+/* =========================
+   STYLE DES BOUTONS
+   ========================= */
+
 #uiPanel button {
   position: relative;
   width: 16vw;
   min-width: 200px;
   max-width: 340px;
 
-  height: clamp(100px, 6vh, 70px);
+  /* même ordre que ton code d'origine, mais clamp corrigé */
+  height: clamp(70px, 6vh, 100px);
   line-height: normal;
 
   text-align: center;
@@ -95,11 +126,11 @@ canvas.started {
   transition:
     background 0.3s linear,
     color 0.3s linear,
-    transform 0.2s ease;
+    transform 0.2s ease,
     box-shadow 0.3s ease;
 }
 
-/* Effet à l'intérieur */
+/* texte centré à l'intérieur du bouton */
 #uiPanel button span {
   position: absolute;
   inset: 0;
@@ -123,7 +154,10 @@ canvas.started {
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
 }
 
-/* AVERTISSEMENT MODE PAYSAGE SUR MOBILE */
+/* =========================
+   AVERTISSEMENT MODE PAYSAGE
+   ========================= */
+
 .force-landscape-warning::before {
   content: "Veuillez tourner votre téléphone en mode paysage";
   position: fixed;
@@ -139,60 +173,10 @@ canvas.started {
   z-index: 9999;
 }
 
-/* BASE */
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  background: #000;
-  overflow: hidden;
-}
+/* =========================
+   BOUTON TOGGLE PLEIN ÉCRAN
+   ========================= */
 
-/* CANVAS PLEIN ÉCRAN */
-canvas {
-  display: block;
-  width: 100vw;
-  height: 100vh; /* valeur par défaut */
-  filter: blur(10px);
-  transition: filter 0.8s ease;
-}
-
-canvas.started {
-  filter: blur(0);
-}
-
-/* Sur navigateurs modernes (Android/Chrome…), on utilise 100dvh
-   pour éviter que la barre de navigation coupe le bas de l’écran */
-@supports (height: 100dvh) {
-  canvas {
-    height: 100dvh;
-  }
-
-  #uiPanel {
-    height: 100dvh;
-  }
-}
-
-/* PANEL UI GAUCHE (garde ton style, juste vérifier la hauteur) */
-#uiPanel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh; /* sera écrasé par 100dvh plus haut si dispo */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 3vh 1.8vw;
-  box-sizing: border-box;
-  gap: 2vh;
-  z-index: 10;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.6s ease;
-  font-family: system-ui, sans-serif;
-}
 #fullscreenToggle {
   position: fixed;
   top: 0.8rem;
@@ -205,6 +189,7 @@ canvas.started {
   color: #ffffff;
   font-size: 0.9rem;
   cursor: pointer;
+  display: none; /* montré via JS après START */
 }
 
 #fullscreenToggle:hover {
