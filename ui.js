@@ -8,6 +8,36 @@ export function initUI(appState, canvas) {
   appState.overlay = overlay;
   appState.uiPanel = uiPanel;
 
+  // --- helpers plein écran + orientation ---
+  function isMobile() {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  async function enterFullscreenAndLock() {
+    const elem = canvas || document.documentElement;
+
+    try {
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {       // Safari
+        await elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {           // vieux Edge
+        await elem.msRequestFullscreen();
+      }
+    } catch (e) {
+      console.warn('Fullscreen error:', e);
+    }
+
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape');
+      }
+    } catch (e) {
+      // Sur iOS Safari, ça échoue souvent, ce n'est pas grave.
+      console.warn('Orientation lock failed:', e);
+    }
+  }
+
   // === START ===
   if (startBtn && overlay && canvas) {
     startBtn.addEventListener('click', () => {
@@ -16,6 +46,12 @@ export function initUI(appState, canvas) {
       canvas.classList.add('started');
       overlay.style.opacity = '0';
       overlay.style.pointerEvents = 'none';
+
+      // Sur mobile : on tente plein écran + orientation paysage
+      if (isMobile()) {
+        enterFullscreenAndLock();
+      }
+
       setTimeout(() => {
         if (overlay && overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
@@ -53,29 +89,28 @@ export function initUI(appState, canvas) {
     }
   }
 
-function addHover(btn, name) {
-  if (!btn) return;
+  function addHover(btn, name) {
+    if (!btn) return;
 
-  btn.addEventListener('mouseenter', () => {
-    // SI un bouton est déjà actif, on ne touche plus aux personnages.
-    // On laisse juste le :hover CSS gérer l'opacité/couleur.
-    if (activeName) return;
+    btn.addEventListener('mouseenter', () => {
+      // SI un bouton est déjà actif, on ne touche plus aux personnages.
+      // On laisse juste le :hover CSS gérer l'opacité/couleur.
+      if (activeName) return;
 
-    // sinon : preview au survol
-    applySelection(name);
-  });
+      // sinon : preview au survol
+      applySelection(name);
+    });
 
-  btn.addEventListener('mouseleave', () => {
-    // SI un bouton est déjà actif, on ne change rien à la scène :
-    // le personnage verrouillé reste visible.
-    if (activeName) return;
+    btn.addEventListener('mouseleave', () => {
+      // SI un bouton est déjà actif, on ne change rien à la scène :
+      // le personnage verrouillé reste visible.
+      if (activeName) return;
 
-    // sinon : on nettoie tout quand on quitte le bouton
-    hideAllCharacters();
-    stopBonesBird();
-  });
-}
-
+      // sinon : on nettoie tout quand on quitte le bouton
+      hideAllCharacters();
+      stopBonesBird();
+    });
+  }
 
   function addClick(btn, name) {
     if (!btn) return;
@@ -122,4 +157,15 @@ function addHover(btn, name) {
   // "Reste humain" → tas d’os + oiseau
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
+
+  // === Gestion "forcer paysage" visuelle ===
+  function handleOrientation() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    document.body.classList.toggle('force-landscape-warning', isPortrait);
+  }
+
+  window.addEventListener('orientationchange', handleOrientation);
+  window.addEventListener('resize', handleOrientation);
+  handleOrientation();
 }
+
