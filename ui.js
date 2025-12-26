@@ -8,22 +8,37 @@ export function initUI(appState, canvas) {
   appState.overlay = overlay;
   appState.uiPanel = uiPanel;
 
-  // ------------ FULLSCREEN + ORIENTATION ------------
+  // --------- Helpers device / fullscreen ---------
 
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
   function isFullscreen() {
-    return (
+    return !!(
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
       document.msFullscreenElement
     );
   }
 
+  // variable CSS --vh basée sur la hauteur VISIBLE de la fenêtre
+  function updateViewportHeightVar() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  }
+
+  updateViewportHeightVar();
+  window.addEventListener('resize', updateViewportHeightVar);
+  window.addEventListener('orientationchange', updateViewportHeightVar);
+  document.addEventListener('fullscreenchange', updateViewportHeightVar);
+
+  // --------- Fullscreen + orientation ----------
+
   async function enterFullscreenAndLock() {
-    const elem = canvas || document.documentElement;
+    // 🔴 IMPORTANT : on met TOUTE LA PAGE en plein écran,
+    // pas seulement le canvas, pour que le panel reste visible
+    const elem = document.documentElement;
 
     try {
       if (elem.requestFullscreen) {
@@ -37,7 +52,7 @@ export function initUI(appState, canvas) {
       console.warn('Fullscreen error:', e);
     }
 
-    // tentative de lock paysage (souvent refusé sur iOS, ce n’est pas grave)
+    // tentative de lock paysage (souvent refusé, surtout sur iOS)
     try {
       if (screen.orientation && screen.orientation.lock) {
         await screen.orientation.lock('landscape');
@@ -69,8 +84,16 @@ export function initUI(appState, canvas) {
     }
   }
 
-  // ---------- BOUTON TOGGLE FULLSCREEN (en haut à droite) ----------
+  // --------- Bouton toggle fullscreen ----------
+
   let fullscreenBtn = null;
+
+  function updateFullscreenButton() {
+    if (!fullscreenBtn) return;
+    const fs = isFullscreen();
+    fullscreenBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
+    fullscreenBtn.textContent = fs ? '⤡' : '⤢';
+  }
 
   function createFullscreenButton() {
     if (fullscreenBtn) return;
@@ -78,67 +101,64 @@ export function initUI(appState, canvas) {
     fullscreenBtn = document.createElement('button');
     fullscreenBtn.id = 'fullscreenToggle';
     fullscreenBtn.type = 'button';
-    fullscreenBtn.textContent = '⤢'; // simple icône
-    fullscreenBtn.style.display = 'none'; // on l’affiche après START
+    fullscreenBtn.textContent = '⤢';
+    fullscreenBtn.style.display = 'none'; // rendu visible après START
     document.body.appendChild(fullscreenBtn);
 
     fullscreenBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleFullscreen();
+      toggleFullscreen().then(updateFullscreenButton);
     });
 
-    document.addEventListener('fullscreenchange', () => {
-      updateFullscreenButton();
-    });
-
-    updateFullscreenButton();
-  }
-
-  function updateFullscreenButton() {
-    if (!fullscreenBtn) return;
-    const fs = !!isFullscreen();
-    fullscreenBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
   }
 
   createFullscreenButton();
 
-  // ---------- GESTION ORIENTATION (message "tourner le téléphone") ----------
-  function handleOrientation() {
+  // --------- Avertissement "tourne ton téléphone" ---------
+
+  function handleOrientationWarning() {
     const isPortrait = window.innerHeight > window.innerWidth;
-    document.body.classList.toggle('force-landscape-warning', isPortrait && isMobile());
+    document.body.classList.toggle(
+      'force-landscape-warning',
+      isPortrait && isMobile()
+    );
   }
 
-  window.addEventListener('orientationchange', handleOrientation);
-  window.addEventListener('resize', handleOrientation);
-  handleOrientation();
+  handleOrientationWarning();
+  window.addEventListener('resize', handleOrientationWarning);
+  window.addEventListener('orientationchange', handleOrientationWarning);
+  document.addEventListener('fullscreenchange', handleOrientationWarning);
 
   // ==================== START ====================
+
   if (startBtn && overlay && canvas) {
-    startBtn.addEventListener('click', () => {
+    startBtn.addEventListener('click', async () => {
       appState.isStarted = true;
       appState.progress = 0;
 
       canvas.classList.add('started');
-      overlay.style.opacity = '0';
-      overlay.style.pointerEvents = 'none';
 
-      // 👉 On montre le panel directement (même en plein écran)
+      // montrer le panel UI (même en fullscreen)
       if (uiPanel) {
         uiPanel.style.opacity = '1';
         uiPanel.style.pointerEvents = 'auto';
       }
 
+      overlay.style.opacity = '0';
+      overlay.style.pointerEvents = 'none';
+
       // plein écran auto sur mobile au premier clic
       if (isMobile() && !isFullscreen()) {
-        enterFullscreenAndLock();
+        await enterFullscreenAndLock();
       }
 
-      // on affiche le bouton de toggle plein écran
+      // rendre le bouton plein écran visible
       if (fullscreenBtn) {
         fullscreenBtn.style.display = 'block';
+        updateFullscreenButton();
       }
 
-      // on retire le DOM après le fade
       setTimeout(() => {
         if (overlay && overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
@@ -147,13 +167,15 @@ export function initUI(appState, canvas) {
     });
   }
 
-  // ==================== MOUSE POSITION ====================
+  // ==================== Souris ====================
+
   window.addEventListener('mousemove', (e) => {
     appState.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     appState.mouseY = (e.clientY / window.innerHeight) * 2 - 1;
   });
 
-  // ==================== BOUTONS PANEL ====================
+  // ==================== Boutons de personnages ====================
+
   const btnElHalaby = document.getElementById('btn-elhalaby');
   const btnAssassin = document.getElementById('btn-assassin');
   const btnMartyr   = document.getElementById('btn-martyr');
@@ -181,7 +203,7 @@ export function initUI(appState, canvas) {
     if (!btn) return;
 
     btn.addEventListener('mouseenter', () => {
-      // si un bouton est déjà actif, on ne fait plus de preview
+      // si déjà un bouton cliqué, pas de preview
       if (activeName) return;
       applySelection(name);
     });
@@ -207,7 +229,7 @@ export function initUI(appState, canvas) {
         return;
       }
 
-      // nouveau bouton sélectionné
+      // sinon on active ce bouton
       if (activeButton) {
         activeButton.classList.remove('active');
       }
@@ -220,7 +242,7 @@ export function initUI(appState, canvas) {
     });
   }
 
-  // personnages Soliman
+  // Soliman
   addHover(btnElHalaby, 'student');
   addClick(btnElHalaby, 'student');
 
@@ -240,4 +262,3 @@ export function initUI(appState, canvas) {
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
 }
-
