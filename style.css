@@ -1,10 +1,19 @@
+/* RESET & LAYOUT DE BASE */
+html,
 body {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
   overflow: hidden;
 }
 
+/* CANVAS PLEIN ÉCRAN */
 canvas {
   display: block;
+  width: 100vw;
+  height: 100vh;
   filter: blur(10px);
   transition: filter 0.8s ease;
 }
@@ -13,7 +22,7 @@ canvas.started {
   filter: blur(0);
 }
 
-/* Overlay + bouton START */
+/* OVERLAY + BOUTON START */
 #overlay {
   position: fixed;
   inset: 0;
@@ -52,23 +61,22 @@ canvas.started {
   justify-content: space-between; /* occupe toute la hauteur */
   padding: 3vh 1.8vw;
   box-sizing: border-box;
-  gap: 2vh; /* ou 1vh, selon ton goût */
+  gap: 2vh;
   z-index: 10;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.6s ease;
-
   font-family: system-ui, sans-serif;
 }
 
-/* STYLE DES BOUTONS */
+/* STYLE DES BOUTONS DU PANEL */
 #uiPanel button {
   position: relative;
   width: 16vw;
   min-width: 200px;
   max-width: 340px;
 
-  height: clamp(100px, 6vh, 70px);
+  height: clamp(70px, 6vh, 100px);
   line-height: normal;
 
   text-align: center;
@@ -77,7 +85,7 @@ canvas.started {
 
   border: 2px solid #ffffff;
   border-radius: 6px;
-  background: rgba(255,255,255,0);
+  background: rgba(255, 255, 255, 0);
   color: #ffffff;
 
   font-size: clamp(0.7rem, 1vw, 1rem);
@@ -87,11 +95,11 @@ canvas.started {
   transition:
     background 0.3s linear,
     color 0.3s linear,
-    transform 0.2s ease;
+    transform 0.2s ease,
     box-shadow 0.3s ease;
 }
 
-/* Effet à l'intérieur */
+/* Contenu interne (texte centré) */
 #uiPanel button span {
   position: absolute;
   inset: 0;
@@ -100,46 +108,22 @@ canvas.started {
   align-items: center;
 }
 
-/* HOVER effet opacité */
+/* HOVER */
 #uiPanel button:hover {
-  background: rgba(255,255,255,0.9);
-  color: #124a58;          /* couleur texte hover */
+  background: rgba(255, 255, 255, 0.9);
+  color: #124a58;
   transform: translateX(4px);
 }
 
-#uiPanel button.active {
-  background: rgba(255,255,255,0.9);
-  color: #124a58;
-}
-
-/* BOUTON ACTIF (cliqué) */
+/* BOUTON ACTIF (CLIQUE) */
 #uiPanel button.active {
   transform: scale(1.04);
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   color: #124a58;
-  box-shadow: 0 0 14px rgba(255,255,255,0.8);
-}
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  background: #000;
-  overflow: hidden;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
 }
 
-canvas {
-  display: block;
-  width: 100vw;
-  height: 100vh;
-  filter: blur(10px);
-  transition: filter 0.8s ease;
-}
-
-canvas.started {
-  filter: blur(0);
-}
-
+/* AVERTISSEMENT "TOURNER LE TÉLÉPHONE" EN PORTRAIT */
 .force-landscape-warning::before {
   content: "Veuillez tourner votre téléphone en mode paysage";
   position: fixed;
@@ -147,13 +131,10 @@ canvas.started {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.9);
+  background: rgba(0, 0, 0, 0.9);
   color: #fff;
   font-family: system-ui, sans-serif;
   text-align: center;
   padding: 2rem;
   z-index: 9999;
 }
-
-
-
