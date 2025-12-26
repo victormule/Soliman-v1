@@ -140,4 +140,20 @@ canvas.started {
   filter: blur(0);
 }
 
+.force-landscape-warning::before {
+  content: "Veuillez tourner votre téléphone en mode paysage";
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  padding: 2rem;
+  z-index: 9999;
+}
+
+
 
