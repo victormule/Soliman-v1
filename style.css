@@ -230,7 +230,7 @@ canvas.started {
   /* chaque corner tourne sur lui-même */
   transform-origin: 50% 50%;
   transform: rotate(180deg);    /* état NORMAL : pointe vers l'intérieur */
-  transition: transform 0.25s ease;
+  transition: transform 1s ease;
 }
 
 /* Placement + forme des 4 corners */
@@ -281,4 +281,5 @@ canvas.started {
 #fullscreenToggle.fs-active {
   transform: scale(0.98);
 }
+
 
