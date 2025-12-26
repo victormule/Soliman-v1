@@ -8,7 +8,9 @@ export function initUI(appState, canvas) {
   appState.overlay = overlay;
   appState.uiPanel = uiPanel;
 
-  // --------- Helpers device / fullscreen ---------
+  // =========================
+  //  HELPERS FULLSCREEN / DEVICE
+  // =========================
 
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -22,22 +24,10 @@ export function initUI(appState, canvas) {
     );
   }
 
-  // variable CSS --vh basée sur la hauteur VISIBLE de la fenêtre
-  function updateViewportHeightVar() {
-    const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', `${vh}px`);
-  }
-
-  updateViewportHeightVar();
-  window.addEventListener('resize', updateViewportHeightVar);
-  window.addEventListener('orientationchange', updateViewportHeightVar);
-  document.addEventListener('fullscreenchange', updateViewportHeightVar);
-
-  // --------- Fullscreen + orientation ----------
-
   async function enterFullscreenAndLock() {
-    // 🔴 IMPORTANT : on met TOUTE LA PAGE en plein écran,
-    // pas seulement le canvas, pour que le panel reste visible
+    // ⚠️ TRES IMPORTANT :
+    // on met TOUTE LA PAGE en plein écran (documentElement),
+    // pour que le panel UI reste visible.
     const elem = document.documentElement;
 
     try {
@@ -52,7 +42,7 @@ export function initUI(appState, canvas) {
       console.warn('Fullscreen error:', e);
     }
 
-    // tentative de lock paysage (souvent refusé, surtout sur iOS)
+    // tentative de verrouillage paysage (souvent refusé sur iOS)
     try {
       if (screen.orientation && screen.orientation.lock) {
         await screen.orientation.lock('landscape');
@@ -84,7 +74,9 @@ export function initUI(appState, canvas) {
     }
   }
 
-  // --------- Bouton toggle fullscreen ----------
+  // =========================
+  //  BOUTON TOGGLE FULLSCREEN
+  // =========================
 
   let fullscreenBtn = null;
 
@@ -92,7 +84,7 @@ export function initUI(appState, canvas) {
     if (!fullscreenBtn) return;
     const fs = isFullscreen();
     fullscreenBtn.setAttribute('aria-pressed', fs ? 'true' : 'false');
-    fullscreenBtn.textContent = fs ? '⤡' : '⤢';
+    fullscreenBtn.textContent = fs ? '⤡' : '⤢'; // icône différente selon l'état
   }
 
   function createFullscreenButton() {
@@ -102,7 +94,7 @@ export function initUI(appState, canvas) {
     fullscreenBtn.id = 'fullscreenToggle';
     fullscreenBtn.type = 'button';
     fullscreenBtn.textContent = '⤢';
-    fullscreenBtn.style.display = 'none'; // rendu visible après START
+    // display: none par défaut, rendu visible après START
     document.body.appendChild(fullscreenBtn);
 
     fullscreenBtn.addEventListener('click', (e) => {
@@ -115,7 +107,9 @@ export function initUI(appState, canvas) {
 
   createFullscreenButton();
 
-  // --------- Avertissement "tourne ton téléphone" ---------
+  // =========================
+  //  AVERTISSEMENT PAYSAGE
+  // =========================
 
   function handleOrientationWarning() {
     const isPortrait = window.innerHeight > window.innerWidth;
@@ -125,40 +119,41 @@ export function initUI(appState, canvas) {
     );
   }
 
-  handleOrientationWarning();
-  window.addEventListener('resize', handleOrientationWarning);
   window.addEventListener('orientationchange', handleOrientationWarning);
-  document.addEventListener('fullscreenchange', handleOrientationWarning);
+  window.addEventListener('resize', handleOrientationWarning);
+  handleOrientationWarning();
 
-  // ==================== START ====================
+  // =========================
+  //  START
+  // =========================
 
   if (startBtn && overlay && canvas) {
     startBtn.addEventListener('click', async () => {
       appState.isStarted = true;
       appState.progress = 0;
 
+      // enlève le blur au début
       canvas.classList.add('started');
 
-      // montrer le panel UI (même en fullscreen)
-      if (uiPanel) {
-        uiPanel.style.opacity = '1';
-        uiPanel.style.pointerEvents = 'auto';
-      }
-
+      // fade de l'overlay
       overlay.style.opacity = '0';
       overlay.style.pointerEvents = 'none';
+
+      // 👉 on laisse main.js gérer l'apparition du panel
+      //    quand progress >= 1 (zoom terminé)
 
       // plein écran auto sur mobile au premier clic
       if (isMobile() && !isFullscreen()) {
         await enterFullscreenAndLock();
       }
 
-      // rendre le bouton plein écran visible
+      // bouton pour pouvoir re-passer en plein écran ensuite
       if (fullscreenBtn) {
         fullscreenBtn.style.display = 'block';
         updateFullscreenButton();
       }
 
+      // suppression DOM de l'overlay après l'anim
       setTimeout(() => {
         if (overlay && overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
@@ -167,14 +162,18 @@ export function initUI(appState, canvas) {
     });
   }
 
-  // ==================== Souris ====================
+  // =========================
+  //  POSITION SOURIS
+  // =========================
 
   window.addEventListener('mousemove', (e) => {
     appState.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     appState.mouseY = (e.clientY / window.innerHeight) * 2 - 1;
   });
 
-  // ==================== Boutons de personnages ====================
+  // =========================
+  //  BOUTONS DU PANEL
+  // =========================
 
   const btnElHalaby = document.getElementById('btn-elhalaby');
   const btnAssassin = document.getElementById('btn-assassin');
@@ -203,7 +202,7 @@ export function initUI(appState, canvas) {
     if (!btn) return;
 
     btn.addEventListener('mouseenter', () => {
-      // si déjà un bouton cliqué, pas de preview
+      // si un bouton est déjà actif, pas de preview
       if (activeName) return;
       applySelection(name);
     });
@@ -229,7 +228,7 @@ export function initUI(appState, canvas) {
         return;
       }
 
-      // sinon on active ce bouton
+      // nouveau bouton sélectionné
       if (activeButton) {
         activeButton.classList.remove('active');
       }
@@ -242,7 +241,7 @@ export function initUI(appState, canvas) {
     });
   }
 
-  // Soliman
+  // personnages Soliman
   addHover(btnElHalaby, 'student');
   addClick(btnElHalaby, 'student');
 
@@ -262,3 +261,4 @@ export function initUI(appState, canvas) {
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
 }
+
