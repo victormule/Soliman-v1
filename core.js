@@ -22,7 +22,7 @@ export function initCore() {
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     //const targetPosition = new THREE.Vector3(0, 1.5, 18);
     // si mobile → avance plus la caméra
-    const targetPosition = new THREE.Vector3(0, 1.5, isMobile ? 12 : 18);
+    const targetPosition = new THREE.Vector3(0, 1.5, isMobile ? 16 : 18);
   
   camera.position.copy(startPosition);
   camera.lookAt(0, 1.5, 0);
@@ -211,4 +211,5 @@ export function updateCameraAndPlants(time, deltaMs, core, appState) {
     });
   }
 }
+
 
