@@ -134,35 +134,33 @@ export function initUI(appState, canvas) {
   // =========================
 
   if (startBtn && overlay && canvas) {
-    startBtn.addEventListener('click', async () => {
-      appState.isStarted = true;
-      appState.progress = 0;
+startBtn.addEventListener('click', async () => {
+  appState.isStarted = true;
+  appState.progress = 0;
 
-      canvas.classList.add('started');
-      overlay.style.opacity = '0';
-      overlay.style.pointerEvents = 'none';
+  canvas.classList.add('started');
+  overlay.style.opacity = '0';
+  overlay.style.pointerEvents = 'none';
 
-      // ⚠️ on laisse main.js gérer l'apparition du panel
-      // quand appState.progress >= 1 (zoom terminé)
+  // --- LANCER LE SON ---
+  const audio = new Audio('sound/desert-ambiance.mp3');
+  audio.loop = true;
+  audio.play();
 
-      // plein écran auto sur mobile au premier clic
-      if (isMobile() && !isFullscreen()) {
-        await enterFullscreenAndLock();
-      }
-
-      // on montre le bouton fullscreen
-      if (fullscreenBtn) {
-        fullscreenBtn.style.display = 'flex'; // correspond au display du CSS
-        updateFullscreenButton();
-      }
-
-      setTimeout(() => {
-        if (overlay && overlay.parentNode) {
-          overlay.parentNode.removeChild(overlay);
-        }
-      }, 700);
-    });
+  if (isMobile() && !isFullscreen()) {
+    await enterFullscreenAndLock();
   }
+
+  if (fullscreenBtn) {
+    fullscreenBtn.style.display = 'flex';
+    updateFullscreenButton();
+  }
+
+  setTimeout(() => {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }, 700);
+});
+}
 
   // =========================
   //  POSITION SOURIS
@@ -267,3 +265,4 @@ export function initUI(appState, canvas) {
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
 }
+
