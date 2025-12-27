@@ -145,7 +145,7 @@ startBtn.addEventListener('click', async () => {
   // --- LANCER LE SON ---
 const audio = new Audio('sound/desert-ambiance.mp3');
 audio.loop = true;
-audio.volume = 0.25;   // 0.0 = muet / 1.0 = maximum
+audio.volume = 1.0;   // 0.0 = muet / 1.0 = maximum
 audio.play();
 
   if (isMobile() && !isFullscreen()) {
@@ -266,5 +266,6 @@ audio.play();
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
 }
+
 
 
