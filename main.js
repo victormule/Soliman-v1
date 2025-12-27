@@ -58,3 +58,4 @@ window.addEventListener('resize', () => {
   core.camera.updateProjectionMatrix();
   core.renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
