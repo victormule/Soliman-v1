@@ -17,20 +17,22 @@ export function initCore() {
     0.1,
     200
   );
-  const startPosition  = new THREE.Vector3(-5, 5, 70);
+  const startPosition = new THREE.Vector3(-5, 5, 70);
 
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    //const targetPosition = new THREE.Vector3(0, 1.5, 18);
-    // si mobile → avance plus la caméra
-    const targetPosition = new THREE.Vector3(0, 1.5, isMobile ? 16.5 : 18);
-  
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // si mobile → avance plus la caméra
+  const targetPosition = new THREE.Vector3(0, 1.5, isMobile ? 16.5 : 18);
+
   camera.position.copy(startPosition);
   camera.lookAt(0, 1.5, 0);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
+
+  // ==== SHADOW MAP ====
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
   document.body.appendChild(renderer.domElement);
 
   let controls = null;
@@ -43,13 +45,22 @@ export function initCore() {
   const light = new THREE.DirectionalLight(0xffffff, 3.5);
   light.position.set(45, 10, 30);
   light.castShadow = true;
-  light.shadow.mapSize.set(2048, 2048);
-  light.shadow.camera.left   = -50;
-  light.shadow.camera.right  =  50;
-  light.shadow.camera.top    =  50;
-  light.shadow.camera.bottom = -50;
-  light.shadow.camera.near   =   1;
-  light.shadow.camera.far    = 100;
+
+  // résolution plus fine du shadow map
+  light.shadow.mapSize.set(4096, 4096);
+
+  // on resserre un peu la caméra d’ombre autour de la scène utile
+  light.shadow.camera.left   = -30;
+  light.shadow.camera.right  =  30;
+  light.shadow.camera.top    =  30;
+  light.shadow.camera.bottom = -30;
+  light.shadow.camera.near   =   2;
+  light.shadow.camera.far    =  80;
+
+  // réduisent fortement les rayures / aliasing sur les surfaces planes
+  light.shadow.bias = -0.0003;
+  light.shadow.normalBias = 0.02;
+
   scene.add(light);
 
   const ambient = new THREE.AmbientLight(0xffffff, 0.4);
@@ -69,7 +80,7 @@ export function initCore() {
     map: groundTexture,
     roughness: 1.0,
     metalness: 0.0,
-    side: THREE.DoubleSide
+    side: THREE.FrontSide // pas besoin du dessous, évite des soucis d'ombre
   });
 
   const groundGeometry = new THREE.PlaneGeometry(400, 400, 200, 200);
@@ -130,6 +141,8 @@ export function initCore() {
 
     model.traverse((child) => {
       if (!child.isMesh) return;
+
+      // on garde les ombres sur le décor principal
       child.castShadow = true;
       child.receiveShadow = true;
 
@@ -211,6 +224,7 @@ export function updateCameraAndPlants(time, deltaMs, core, appState) {
     });
   }
 }
+
 
 
 
