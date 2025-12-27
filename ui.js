@@ -151,7 +151,7 @@ audio.play();
 // --- DEUXIÈME MUSIQUE EN PARALLÈLE ---
 const music2 = new Audio('sound/music1.mp3');
 music2.loop = true;
-music2.volume = 0.05;   // ajuste si besoin
+music2.volume = 0.02;   // ajuste si besoin
 music2.play();
   
   if (isMobile() && !isFullscreen()) {
@@ -306,6 +306,7 @@ function playPress() {
   addHover(btnMuseum, 'museum');
   addClick(btnMuseum, 'museum');
 }
+
 
 
 
