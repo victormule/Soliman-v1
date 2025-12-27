@@ -64,8 +64,23 @@ const characters = {
     texture: null,
     currentFrame: 0,
     accumulatedTime: 0
+  },
+    
+  museum: {
+    path: 'model/soliman-musée.glb',        // vérifie bien le nom exact du fichier
+    sprite: 'images/spritesheet7.png',
+    totalFrames: 4,                         // tu l'as indiqué
+    fps: 3,                                 // comme les autres (tu peux changer si besoin)
+    model: null,
+    mesh: null,
+    texture: null,
+    currentFrame: 0,
+    accumulatedTime: 0
+    
   }
 };
+
+
 
 // correspondance key → nom de plane dans Blender
 const meshNameByKey = {
@@ -73,7 +88,8 @@ const meshNameByKey = {
   assassin: ['spriteplane_assassin', 'spriteplane'],
   martyr:   ['spriteplane_martyr',   'spriteplane'],
   hero:     ['spriteplane_hero',     'spriteplane'],
-  body:     ['spriteplane_body',     'spriteplane']
+  body:     ['spriteplane_body',     'spriteplane'],
+  museum:   ['spriteplane_musee',    'spriteplane']
 };
 
 // ========================
@@ -377,3 +393,4 @@ export function updateBonesBird(deltaMs, isStarted) {
   // ---------- PHASE 3 : PAUSE ----------
   // On ne touche plus à rien → dernière frame + dernière position figée pendant 6s
 }
+
