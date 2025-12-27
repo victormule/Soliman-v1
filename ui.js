@@ -134,7 +134,7 @@ export function initUI(appState, canvas) {
   // =========================
 
   if (startBtn && overlay && canvas) {
-startBtn.addEventListener('click', async () => {
+    startBtn.addEventListener('click', async () => {
   appState.isStarted = true;
   appState.progress = 0;
 
@@ -147,7 +147,7 @@ const audio = new Audio('sound/desert-ambiance.mp3');
 audio.loop = true;
 audio.volume = 0.5;   // 0.0 = muet / 1.0 = maximum
 audio.play();
-
+  
   if (isMobile() && !isFullscreen()) {
     await enterFullscreenAndLock();
   }
@@ -161,7 +161,7 @@ audio.play();
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }, 700);
 });
-}
+  }
 
   // =========================
   //  POSITION SOURIS
@@ -171,6 +171,29 @@ audio.play();
     appState.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     appState.mouseY = (e.clientY / window.innerHeight) * 2 - 1;
   });
+
+
+// =========================
+//  SONS UI
+// =========================
+
+// on garde juste les chemins des fichiers
+const HOVER_SOUND_SRC = 'sound/hover-title.mp3';
+const PRESS_SOUND_SRC = 'sound/press-title.mp3';
+
+function playHover() {
+  const s = new Audio(HOVER_SOUND_SRC);
+  s.volume = 0.01;          // ajuste si besoin
+  s.play().catch(() => {}); // on ignore proprement les petites erreurs
+}
+
+function playPress() {
+  const s = new Audio(PRESS_SOUND_SRC);
+  s.volume = 0.2;          // ajuste si besoin
+  s.play().catch(() => {});
+}
+
+
 
   // =========================
   //  BOUTONS DU PANEL
@@ -203,6 +226,9 @@ audio.play();
     if (!btn) return;
 
     btn.addEventListener('mouseenter', () => {
+      // son de hover
+      playHover();
+
       // SI un bouton est déjà actif, on ne touche plus aux personnages.
       if (activeName) return;
 
@@ -223,6 +249,9 @@ audio.play();
     if (!btn) return;
 
     btn.addEventListener('click', () => {
+      // son de clic
+      playPress();
+
       // clic sur le même bouton => on désactive
       if (activeButton === btn) {
         btn.classList.remove('active');
@@ -266,7 +295,6 @@ audio.play();
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
 }
-
 
 
 
