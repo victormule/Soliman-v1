@@ -205,6 +205,7 @@ function playPress() {
   const btnHero     = document.getElementById('btn-hero');
   const btnBody     = document.getElementById('btn-body');   // Soliman-corps
   const btnHuman    = document.getElementById('btn-human');  // Reste humain (os + oiseau)
+  const btnMuseum   = document.getElementById('btn-museum');
 
   let activeButton = null;
   let activeName   = null;
@@ -294,7 +295,10 @@ function playPress() {
   // "Reste humain" → tas d’os + oiseau
   addHover(btnHuman, 'bones');
   addClick(btnHuman, 'bones');
-}
 
+  // Corps muséalisé → nouveau personnage "museum"
+  addHover(btnMuseum, 'museum');
+  addClick(btnMuseum, 'museum');
+}
 
 
