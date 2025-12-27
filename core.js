@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'OrbitControls';
 import { Sky } from 'Sky';
 import { GLTFLoader } from 'GLTFLoader';
-
+import { initScenePlanes } from './scenePlanes.js';
 export const DEBUG_CAMERA = false;
 
 // initialisation de la scène, du renderer, de la caméra, du sol, du ciel, des plantes…
@@ -42,7 +42,7 @@ export function initCore() {
   }
 
   // ==== LUMIÈRES ====
-  const light = new THREE.DirectionalLight(0xffffff, 3.5);
+  const light = new THREE.DirectionalLight(0xffffff, 2.5);
   light.position.set(45, 10, 30);
   light.castShadow = true;
 
@@ -63,7 +63,7 @@ export function initCore() {
 
   scene.add(light);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.2);
   scene.add(ambient);
 
   // ==== SOL RÉALISTE (sable ondulé) ====
@@ -135,34 +135,38 @@ export function initCore() {
   ]);
 
   const loader = new GLTFLoader();
-  loader.load('model/scene.glb', (gltf) => {
-    const model = gltf.scene;
-    model.scale.set(1, 1, 1);
+loader.load('model/scene.glb', (gltf) => {
+  const model = gltf.scene;
+  model.scale.set(1, 1, 1);
 
-    model.traverse((child) => {
-      if (!child.isMesh) return;
+  model.traverse((child) => {
+    if (!child.isMesh) return;
 
-      // on garde les ombres sur le décor principal
-      child.castShadow = true;
-      child.receiveShadow = true;
+    // on garde les ombres sur le décor principal
+    child.castShadow = true;
+    child.receiveShadow = true;
 
-      const name = (child.name || '').toLowerCase();
-      const parentName =
-        child.parent && child.parent.name
-          ? child.parent.name.toLowerCase()
-          : '';
+    const name = (child.name || '').toLowerCase();
+    const parentName =
+      child.parent && child.parent.name
+        ? child.parent.name.toLowerCase()
+        : '';
 
-      if (animNames.has(name) || animNames.has(parentName)) {
-        animatedPlants.push({
-          mesh: child,
-          baseRotation: child.rotation.clone(),
-          offset: Math.random() * Math.PI * 2
-        });
-      }
-    });
-
-    scene.add(model);
+    if (animNames.has(name) || animNames.has(parentName)) {
+      animatedPlants.push({
+        mesh: child,
+        baseRotation: child.rotation.clone(),
+        offset: Math.random() * Math.PI * 2
+      });
+    }
   });
+
+  // ⬅️ nouveau : on applique les textures (tree/plante/palm/decor1/decor2)
+  initScenePlanes(model);
+
+  scene.add(model);
+});
+
 
   // paramètres caméra animée
   const lookTarget = new THREE.Vector3(0, 1.5, 0);
@@ -224,7 +228,6 @@ export function updateCameraAndPlants(time, deltaMs, core, appState) {
     });
   }
 }
-
 
 
 
