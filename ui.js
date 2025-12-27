@@ -145,13 +145,13 @@ export function initUI(appState, canvas) {
   // --- LANCER LE SON ---
 const audio = new Audio('sound/desert-ambiance.mp3');
 audio.loop = true;
-audio.volume = 0.3;   // 0.0 = muet / 1.0 = maximum
+audio.volume = 0.2;   // 0.0 = muet / 1.0 = maximum
 audio.play();
 
 // --- DEUXIÈME MUSIQUE EN PARALLÈLE ---
 const music2 = new Audio('sound/music1.mp3');
 music2.loop = true;
-music2.volume = 0.3;   // ajuste si besoin
+music2.volume = 0.05;   // ajuste si besoin
 music2.play();
   
   if (isMobile() && !isFullscreen()) {
@@ -306,6 +306,7 @@ function playPress() {
   addHover(btnMuseum, 'museum');
   addClick(btnMuseum, 'museum');
 }
+
 
 
 
